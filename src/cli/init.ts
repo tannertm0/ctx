@@ -19,6 +19,32 @@ Add your team's coding rules and conventions here.
 These will be synced to all configured AI platforms.
 `;
 
+const CTX_USAGE_RULES = `# CTX Context Management
+
+This project uses \`ctx\` to manage AI context across platforms (Claude Code, Cursor, Windsurf).
+
+## Important
+
+- **Source of truth**: All AI context lives in the \`.ctx/\` directory
+- **Never edit generated files** in \`.claude/\`, \`.cursor/\`, or \`.windsurf/\` directly — they are overwritten on sync
+- After modifying files in \`.ctx/\`, run \`ctx sync\` to regenerate platform files
+
+## Commands
+
+| Command | Description |
+|---------|-------------|
+| \`ctx add <type> <name>\` | Add a new context slot (agent, rules, memory, docs) |
+| \`ctx sync\` | Regenerate all platform files from \`.ctx/\` sources |
+| \`ctx status\` | Show which slots are synced, modified, or missing |
+| \`ctx diff\` | Preview what would change on next sync |
+
+## Workflow
+
+1. Edit or create files in \`.ctx/\` (rules, agents, memory, docs)
+2. Run \`ctx sync\` to propagate changes to all platforms
+3. Commit \`.ctx/\`, \`ctx.yaml\`, and \`ctx.lock\` to git
+`;
+
 export function registerInit(program: Command): void {
   program
     .command('init')
@@ -46,6 +72,12 @@ export function registerInit(program: Command): void {
         fs.writeFileSync(defaultRulesPath, DEFAULT_RULES, 'utf-8');
       }
 
+      // Create ctx-usage rules file (teaches LLMs about ctx)
+      const ctxUsagePath = path.join(ctxDir, 'rules', 'ctx-usage.md');
+      if (!fs.existsSync(ctxUsagePath)) {
+        fs.writeFileSync(ctxUsagePath, CTX_USAGE_RULES, 'utf-8');
+      }
+
       // Determine project name
       const projectName = opts.name || path.basename(projectRoot);
       const platforms = (opts.platforms as string).split(',').map((p: string) => p.trim()) as Platform[];
@@ -61,6 +93,12 @@ export function registerInit(program: Command): void {
             name: 'default',
             path: 'rules/default.md',
             description: 'Default coding rules',
+          },
+          {
+            type: 'rules',
+            name: 'ctx-usage',
+            path: 'rules/ctx-usage.md',
+            description: 'Teaches LLMs how to use ctx for context management',
           },
         ],
       };
